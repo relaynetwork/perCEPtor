@@ -145,7 +145,7 @@
   ;; register the query / listener
   (restart-server))
 
-(defn main [args]
+(defn -main [& args]
   (service-main))
 
 

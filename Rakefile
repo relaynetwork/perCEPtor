@@ -118,5 +118,13 @@ namespace :perceptor do
         FileUtils.ln_s $project_root, "checkouts"
       end
     end
+    desc "Run Example"
+    task :run do
+      Dir.chdir "examples/web-stats" do |p|
+        unless system "lein", "run"
+          raise "Error running example via 'lein run'"
+        end
+      end
+    end
   end
 end
