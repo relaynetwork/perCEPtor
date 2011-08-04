@@ -35,10 +35,45 @@ App = function () {
         }
     };
 
+    self.randomStockEvent = function () {
+        try {
+            $('#price').val(Math.random() * 10);
+            $.post("/event/new",$('#event').serialize());
+            return false;
+        }
+        catch (x) {
+            console.log("Error: %s", x);
+            return false;
+        }
+    };
+
+    self.runEmitter = false;
+    self.emitterInterval = 250;
+    self.emitterFn = function () {
+        self.randomStockEvent();
+
+        if ( self.runEmitter) {
+            setTimeout(self.emitterFn,self.emitterInterval)
+        }
+    };
+    self.startEmitter = function () {
+        self.runEmitter = true;
+        setTimeout(self.emitterFn,self.emitterInterval);
+        return false;
+    };
+
+    self.stopEmitter = function () {
+        self.runEmitter = true;
+        return false;
+    };
+
     self.init = function () {
         self.fetchStats();
         setInterval(self.fetchStats,self.statsInterval);
         $('#post-event').click(self.submitEvent);
+        $('#post-rand').click(self.randomStockEvent);
+        $('#start-emitter').click(self.startEmitter);
+        $('#stop-emitter').click(self.stopEmitter);
     };
 
     return self;

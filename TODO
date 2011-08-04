@@ -1,0 +1,2 @@
+* for compile-statement: add bind variable support
+* for immediate-query: add bind variable support

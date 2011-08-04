@@ -46,7 +46,10 @@
      (text-field :stock "xyz")
      (text-field :price "1.99")
      [:br]
-     [:button#post-event "Post Event"]]
+     [:button#post-event "Post Event"]
+     [:button#post-rand "Gen Rand Price"]
+     [:button#start-emitter "Start Emitter"]
+     [:button#stop-emitter "Stop Emitter"]]
     [:div#footer
      [:p
       [:a {:href "/"} "Home"]]]))
@@ -199,6 +202,10 @@
   (binding [*provider* @*esp*]
     (for [e (perceptor/immediate-query "select * from StockEventsLastMinute")]
       (bean e)))
+
+  (binding [*provider* @*esp*]
+    (count (for [e (perceptor/immediate-query "select * from StockEventsLastMinute limit 10")]
+       (.getProperties e))))
 
   (tr/with-jedis :local
     (.del *jedis* (into-array String (vec (.keys *jedis* "*")))))
