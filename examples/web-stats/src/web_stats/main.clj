@@ -81,6 +81,11 @@
                [k (.get *jedis* k)])
              (sort (.keys *jedis* "stats.*")))}])))
 
+(defpage "/stock/:name" {name :name}
+  (binding [*provider* @*esp*]
+    (json [{:result (for [e (perceptor/immediate-query (format "select * from StockEventsLastMinute where stock = '%s'" name))]
+                      (.getProperties e))}])))
+
 
 (defn service-main []
   (log/infof "Starting services")
