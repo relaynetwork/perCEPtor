@@ -10,9 +10,11 @@ App = function () {
         console.dir(data);
         $('#stat-info').html('');
         $.each(data[0].result,function (k,v) {
+                   var key = v[0];
+                   var val = v[1];
                    console.dir(k);
                    console.dir(v);
-                   $('#stat-info').append(k + ": " + v + "\n");
+                   $('#stat-info').append(key + ": " + val + "\n");
                });
         $('#stat-info').append((new Date()).toString());
     };

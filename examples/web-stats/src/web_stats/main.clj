@@ -76,10 +76,10 @@
 (defpage "/stats" {}
   (tr/with-jedis :local
     (json [{:result
-            (reduce
-             (fn [m k]
-               (assoc m k (.get *jedis* k)))
-             {} (.keys *jedis* "stats.*"))}])))
+            (map
+             (fn [k]
+               [k (.get *jedis* k)])
+             (sort (.keys *jedis* "stats.*")))}])))
 
 
 (defn service-main []
@@ -138,9 +138,43 @@
                       price (class price))
            (.set *jedis* key price))))))
 
+
+  (perceptor/register-listener
+   :trade-min-listener
+   "select min(price) as price, stock from StockEvent.win:time(60 seconds) group by stock"
+   (fn []
+     (log/infof "min event: %s" (vec (map bean *new-events*)))
+     (tr/with-jedis :local
+       (doseq [e *new-events*]
+         (let [props (.getProperties e)
+               key   (format "stats.%s.min.60s" (get props "stock"))
+               price (str (get props "price"))]
+           (log/infof " set [min]: %s/%s=%s/%s"
+                      key (class key)
+                      price (class price))
+           (.set *jedis* key price))))))
+
+
+  (perceptor/register-listener
+   :trade-max-listener
+   "select max(price) as price, stock from StockEvent.win:time(60 seconds) group by stock"
+   (fn []
+     (log/infof "max event: %s" (vec (map bean *new-events*)))
+     (tr/with-jedis :local
+       (doseq [e *new-events*]
+         (let [props (.getProperties e)
+               key   (format "stats.%s.max.60s" (get props "stock"))
+               price (str (get props "price"))]
+           (log/infof " set [max]: %s/%s=%s/%s"
+                      key (class key)
+                      price (class price))
+           (.set *jedis* key price))))))
+
   (binding [*provider* @*esp*]
     (perceptor/start-listener :trade-count-listener)
-    (perceptor/start-listener :trade-avg-listener))
+    (perceptor/start-listener :trade-avg-listener)
+    (perceptor/start-listener :trade-max-listener)
+    (perceptor/start-listener :trade-min-listener))
 
   ;; register the query / listener
   (restart-server))
