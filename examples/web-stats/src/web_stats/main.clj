@@ -47,6 +47,7 @@
      (text-field :event-type "GenericEvent")
      (text-field :stock "xyz")
      (text-field :price "1.99")
+     (text-field :emitter-interval "250")
      [:br]
      [:button#post-event "Post Event"]
      [:button#post-rand "Gen Rand Price"]

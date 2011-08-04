@@ -46,28 +46,33 @@ App = function () {
     };
 
     self.runEmitter = false;
-    self.emitterInterval = 250;
+
     self.emitterFn = function () {
         self.randomStockEvent();
 
         if ( self.runEmitter) {
-            setTimeout(self.emitterFn,self.emitterInterval)
+            setTimeout(self.emitterFn,parseInt($('#emitter-interval').val()));
         }
     };
     self.startEmitter = function () {
         self.runEmitter = true;
-        setTimeout(self.emitterFn,self.emitterInterval);
+        $('#start-emitter').attr('disabled','disabled');
+        $('#stop-emitter').removeAttr('disabled');
+        self.emitterFn();
         return false;
     };
 
     self.stopEmitter = function () {
         self.runEmitter = false;
+        $('#stop-emitter').attr('disabled','disabled');
+        $('#start-emitter').removeAttr('disabled');
         return false;
     };
 
     self.init = function () {
         self.fetchStats();
         setInterval(self.fetchStats,self.statsInterval);
+        $('#stop-emitter').attr('disabled','disabled');
         $('#post-event').click(self.submitEvent);
         $('#post-rand').click(self.randomStockEvent);
         $('#start-emitter').click(self.startEmitter);
