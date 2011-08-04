@@ -87,13 +87,6 @@
   (log/load-log4j-file "dev-resources/log4j.properties")
   (tr/register-redis-pool :local {:host "localhost"
                                   :port 6379})
-  ;; pre-populate with 1 example
-  (tr/with-jedis :local
-    #_(.incr *jedis* "stats.example")
-    (tr/with-jedis :local
-      (.set *jedis* "stats.xyz.avg.60s" "1.00"))
-    (tr/with-jedis :local
-      (.set *jedis* "stats.xyz.trades.60s" "1.00")))
 
   (if-not (nil? @*esp*)
     (binding [*provider* @*esp*]
@@ -104,7 +97,10 @@
    (fn [mgr]
      (perceptor/declare-type "StockEvent"
                              "stock" "string"
-                             "price" "float")))
+                             "price" "float")
+     (perceptor/compile-statement "CREATE WINDOW StockEventsLastMinute.win:time(60 seconds) AS StockEvent")
+     (perceptor/compile-statement "insert into StockEventsLastMinute select * from StockEvent")))
+
 
   (reset! *esp* (perceptor/make-provider :stocks))
 
@@ -176,6 +172,12 @@
     (perceptor/start-listener :trade-max-listener)
     (perceptor/start-listener :trade-min-listener))
 
+  ;; pre-populate with 1 example
+  (binding [*provider* @*esp*]
+    (perceptor/emit-event "StockEvent"
+                          "stock" "xyz"
+                          "price" (Double/parseDouble "1.99")))
+
   ;; register the query / listener
   (restart-server))
 
@@ -188,6 +190,10 @@
     (perceptor/emit-event "StockEvent"
                           "stock" "xyz"
                           "price" (Double/parseDouble "1.99")))
+
+  (binding [*provider* @*esp*]
+    (for [e (perceptor/immediate-query "select * from StockEventsLastMinute")]
+      (bean e)))
 
   (tr/with-jedis :local
     (.del *jedis* (into-array String (vec (.keys *jedis* "*")))))
