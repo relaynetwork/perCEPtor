@@ -14,7 +14,9 @@
    [perceptor.provider :only [*new-events* *provider*]]
    [clj-etl-utils.lang-utils :only [raise]]))
 
-(def *config* (atom {:port 8080}))
+(def *config* (atom {:port 8080
+                     :window-size-seconds 60
+                     :key-expire-seconds  60}))
 
 (defonce *server* (atom nil))
 
@@ -106,7 +108,7 @@
      (perceptor/declare-type "StockEvent"
                              "stock" "string"
                              "price" "float")
-     (perceptor/compile-statement "CREATE WINDOW StockEventsLastMinute.win:time(60 seconds) AS StockEvent")
+     (perceptor/compile-statement (format "CREATE WINDOW StockEventsLastMinute.win:time(%s seconds) AS StockEvent" (:window-size-seconds @*config*)))
      (perceptor/compile-statement "insert into StockEventsLastMinute select * from StockEvent")))
 
 
@@ -114,7 +116,7 @@
 
   (perceptor/register-listener
    :trade-count-listener
-   "select count(*) as count, stock from StockEvent.win:time(60 seconds) group by stock"
+   (format "select count(*) as count, stock from StockEvent.win:time(%s seconds) group by stock" (:window-size-seconds @*config*))
    (fn []
      (log/infof "count event: %s" (vec (map bean *new-events*)))
      (tr/with-jedis :local
@@ -125,11 +127,12 @@
            (log/infof " set [count]: %s/%s=%s/%s"
                       key (class key)
                       count (class count))
-           (.set *jedis* key count))))))
+           (.set *jedis* key count)
+           (.expire *jedis* key (:key-expire-seconds @*config*)))))))
 
   (perceptor/register-listener
    :trade-avg-listener
-   "select avg(price) as price, stock from StockEvent.win:time(60 seconds) group by stock"
+   (format "select avg(price) as price, stock from StockEvent.win:time(%s seconds) group by stock" (:window-size-seconds @*config*))
    (fn []
      (log/infof "avg event: %s" (vec (map bean *new-events*)))
      (tr/with-jedis :local
@@ -140,12 +143,13 @@
            (log/infof " set [avg]: %s/%s=%s/%s"
                       key (class key)
                       price (class price))
-           (.set *jedis* key price))))))
+           (.set *jedis* key price)
+           (.expire *jedis* key (:key-expire-seconds @*config*)))))))
 
 
   (perceptor/register-listener
    :trade-min-listener
-   "select min(price) as price, stock from StockEvent.win:time(60 seconds) group by stock"
+   (format "select min(price) as price, stock from StockEvent.win:time(%s seconds) group by stock" (:window-size-seconds @*config*))
    (fn []
      (log/infof "min event: %s" (vec (map bean *new-events*)))
      (tr/with-jedis :local
@@ -156,12 +160,13 @@
            (log/infof " set [min]: %s/%s=%s/%s"
                       key (class key)
                       price (class price))
-           (.set *jedis* key price))))))
+           (.set *jedis* key price)
+           (.expire *jedis* key (:key-expire-seconds @*config*)))))))
 
 
   (perceptor/register-listener
    :trade-max-listener
-   "select max(price) as price, stock from StockEvent.win:time(60 seconds) group by stock"
+   (format "select max(price) as price, stock from StockEvent.win:time(%s seconds) group by stock" (:window-size-seconds @*config*))
    (fn []
      (log/infof "max event: %s" (vec (map bean *new-events*)))
      (tr/with-jedis :local
@@ -172,7 +177,8 @@
            (log/infof " set [max]: %s/%s=%s/%s"
                       key (class key)
                       price (class price))
-           (.set *jedis* key price))))))
+           (.set *jedis* key price)
+           (.expire *jedis* key (:key-expire-seconds @*config*)))))))
 
   (binding [*provider* @*esp*]
     (perceptor/start-listener :trade-count-listener)
@@ -209,6 +215,9 @@
 
   (tr/with-jedis :local
     (.del *jedis* (into-array String (vec (.keys *jedis* "*")))))
+
+  (tr/with-jedis :local
+    (.expire *jedis* "stats.i.avg.60s" 10))
 
   (service-main)
 
