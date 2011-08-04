@@ -2,3 +2,4 @@ redis-2.2.11.tar.gz
 redis-2.2.11/
 redis-master.conf
 master-appendonly.aof
+master-dump.rdb

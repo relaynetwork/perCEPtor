@@ -34,10 +34,14 @@
 (defn get-registered-provider [name]
   (get @*provider-registry* name))
 
+
+(def *provider* :no-provider)
+
 (defn make-provider [name]
   (let [cfg      (get-registered-provider name)
         provider (EPServiceProviderManager/getDefaultProvider)]
-    ((get cfg :init-fn) provider)
+    (binding [*provider* provider]
+      ((get cfg :init-fn) provider))
     provider))
 
 (defn get-provider [name]
@@ -46,8 +50,6 @@
 (defn return-provider [name provider]
   (.returnObject (:pool (get @pool/*registry* name)) provider))
 
-
-(def *provider* :no-provider)
 
 (defn with-provider* [name f]
   (pool/with-instance [instance name]
@@ -67,7 +69,7 @@
 (defn map->properties [& pairs]
   (map->properties* (apply hash-map pairs)))
 
-(defn declare-type* [provider name props]
+(defn declare-type* [name props]
   (.addEventType (.getConfiguration (.getEPAdministrator *provider*))
                  name
                  (map->properties* props)))
@@ -93,6 +95,8 @@
 (defn stop-all-statements []
   (.stopAllStatements (.getEPAdministrator *provider*)))
 
+(def *new-events* :new-events-must-be-bound)
+(def *old-events* :old-events-must-be-bound)
 
 
 (defn make-listener* [f]
