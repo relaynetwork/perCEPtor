@@ -3,7 +3,7 @@
 App = function () {
     var self = {};
 
-    self.statsInterval = 1000;
+    self.refreshInterval = 1000;
 
     self.receiveStats = function (data) {
         // console.log("got stats: %s", data);
@@ -17,9 +17,10 @@ App = function () {
         $('#stat-info').append((new Date()).toString());
     };
 
-    self.fetchStats = function () {
-        // console.log("fetch stat data");
+    self.refresh = function () {
         $.get('/stats',self.receiveStats);
+        $.get('/stock/' + $('#stock').val(),self.drawGraph);
+        setTimeout(self.refresh,self.refreshInterval);
     };
 
     self.submitEvent = function () {
@@ -70,13 +71,48 @@ App = function () {
     };
 
     self.init = function () {
-        self.fetchStats();
-        setInterval(self.fetchStats,self.statsInterval);
         $('#stop-emitter').attr('disabled','disabled');
         $('#post-event').click(self.submitEvent);
         $('#post-rand').click(self.randomStockEvent);
         $('#start-emitter').click(self.startEmitter);
         $('#stop-emitter').click(self.stopEmitter);
+        self.refresh();
+    };
+
+    self.drawGraph = function (stockData) {
+        $('#graph').html('');
+        self.raphael = Raphael("graph",400,400);
+        var x = [], y = [];
+        $.each(stockData[0].result,function(idx,data) {
+                   x[idx] = idx;
+                   y[idx] = data.price;
+               });
+
+        // var x = [], y = [], y2 = [], y3 = [];
+        // for (var i = 0; i < 1e6; i++) {
+        //     x[i] = i * 10;
+        //     y[i] = (y[i - 1] || 0) + (Math.random() * 7) - 3;
+        //     y2[i] = (y2[i - 1] || 150) + (Math.random() * 7) - 3.5;
+        //     y3[i] = (y3[i - 1] || 300) + (Math.random() * 7) - 4;
+        // }
+
+        // self.raphael.g.text(160, 10, "Simple Line Chart (1000 points)");
+        // self.raphael.g.text(480, 10, "shade = true (10,000 points)");
+        // self.raphael.g.text(160, 250, "shade = true & nostroke = true (1,000,000 points)");
+        // self.raphael.g.text(480, 250, "Symbols, axis and hover effect");
+
+        // self.raphael.g.linechart(10, 10, 300, 220, x, [y.slice(0, 1e3), y2.slice(0, 1e3), y3.slice(0, 1e3)])
+
+        self.raphael.g.linechart(10, 10, 300, 220, x, [y])
+            .hoverColumn(function () {
+                             this.set = self.raphael.set(
+                                 self.raphael.g.disc(this.x, this.y[0]),
+                                 self.raphael.g.disc(this.x, this.y[1]),
+                                 self.raphael.g.disc(this.x, this.y[2])
+                             );
+                         }, function () {
+                             this.set.remove();
+                         });
     };
 
     return self;

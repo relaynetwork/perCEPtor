@@ -35,6 +35,10 @@
     (include-js "/js/jquery-1.5.1.min.js")
     (include-js "/js/app.js")
     (include-css "/css/app.css")
+    (include-js "/js/raphael-min.js")
+    (include-js "/js/g.raphael-min.js")
+    (include-js "/js/g.bar-min.js")
+    (include-js "/js/g.line-min.js")
     [:title title]]
    body))
 
@@ -53,6 +57,7 @@
      [:button#post-rand "Gen Rand Price"]
      [:button#start-emitter "Start Emitter"]
      [:button#stop-emitter "Stop Emitter"]]
+    [:div#graph]
     [:div#footer
      [:p
       [:a {:href "/"} "Home"]]]))

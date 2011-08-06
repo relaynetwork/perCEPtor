@@ -126,5 +126,13 @@ namespace :perceptor do
         end
       end
     end
+    desc "Swank: start a swank server."
+    task :swank do
+      Dir.chdir "examples/web-stats" do |p|
+        unless system "lein", "swank"
+          raise "Error running: 'lein swank'"
+        end
+      end
+    end
   end
 end
