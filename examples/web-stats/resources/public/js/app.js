@@ -84,7 +84,7 @@ App = function () {
         $('#start-emitter').click(self.startEmitter);
         $('#stop-emitter').click(self.stopEmitter);
         self.refresh();
-        // self.doDrawGraph();
+        self.doDrawGraph();
     };
 
     self.fetchGraphData = function () {
@@ -98,25 +98,53 @@ App = function () {
               });
     };
 
+    self.averageArray = function (ary) {
+        var total = 0.0, len = ary.length;
+        for (var ii = 0 ; ii < len; ii++ ) {
+            total = total + ary[ii];
+        }
+        return( total / (1.0 * len) );
+    };
+
+    self.kalFilt = function(a) {
+        var copy = a.slice(0).sort();
+        var mid = Math.floor(copy.length / 2);
+        return copy[mid];
+    };
+
     self.drawGraph = function (stockData) {
-        console.log('drawGraph, clearing #graph stockData.result.length=%s', stockData[0].result.length);
-        console.dir(stockData);
+
         $('#graph').html('');
 
         if ( stockData[0].result.length < 1) {
             return;
         }
 
-        console.log('drawGraph, creating Raphael in #graph');
         self.raphael = Raphael("graph",400,400);
-        var x_vals = [], y_vals = [];
+        var x_vals = [], y_vals = [],
+        avgs = [], avgWindow = [], avgWidth = 10,
+        kal = [], kalWin = [], kalWidth = 7;
+
+
+        for(var ii = 0; ii < avgWidth; ii++ ) {
+            avgWindow[ii] = stockData[0].result[ii].price;
+        }
+
+        for(var ii = 0; ii < kalWidth; ii++ ) {
+            kalWin[ii] = stockData[0].result[ii].price;
+        }
+
         $.each(stockData[0].result,function(idx,data) {
                    x_vals[idx] = idx;
                    y_vals[idx] = data.price;
+                   avgWindow.push(data.price);
+                   avgWindow.shift();
+                   kalWin.push(data.price);
+                   kalWin.shift();
+                   kal[idx] = self.kalFilt(kalWin);
+                   avgs[idx] = self.averageArray(avgWindow);
                });
-        console.log('drawGraph, rendering linechart over x.len=%s y.len=%s', x_vals.length, y_vals.length);
-        self.raphael.g.linechart(10, 10, 300, 220, x_vals, [y_vals]);
-        console.log('drawGraph, rendered linechart');
+        self.raphael.g.linechart(10, 10, 300, 220, x_vals, [y_vals,avgs,kal]);
     };
 
     return self;
