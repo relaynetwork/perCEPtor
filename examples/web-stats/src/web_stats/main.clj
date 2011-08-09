@@ -94,8 +94,12 @@
 
 (defpage "/stock/:name" {name :name}
   (binding [*provider* @*esp*]
-    (json [{:result (for [e (perceptor/immediate-query (format "select * from StockEventsLastMinute where stock = '%s'" name))]
-                      (.getProperties e))}])))
+    (json [{:result
+            (take 50
+                  (concat (for [e (perceptor/immediate-query (format "select * from StockEventsLast50 where stock = '%s'" name))]
+                     (.getProperties e))
+                          (repeatedly (fn [] {"stock" name "price" 0}))))}])))
+
 
 
 (defn service-main []
@@ -115,7 +119,9 @@
                              "stock" "string"
                              "price" "float")
      (perceptor/compile-statement (format "CREATE WINDOW StockEventsLastMinute.win:time(%s seconds) AS StockEvent" (:window-size-seconds @*config*)))
-     (perceptor/compile-statement "insert into StockEventsLastMinute select * from StockEvent")))
+     (perceptor/compile-statement (format "CREATE WINDOW StockEventsLast50.win:length(50) AS StockEvent"))
+     (perceptor/compile-statement "insert into StockEventsLastMinute select * from StockEvent")
+     (perceptor/compile-statement "insert into StockEventsLast50 select * from StockEvent")))
 
 
   (reset! *esp* (perceptor/make-provider :stocks))

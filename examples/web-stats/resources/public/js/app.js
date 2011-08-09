@@ -3,8 +3,6 @@
 App = function () {
     var self = {};
 
-    self.refreshInterval = 1000;
-
     self.receiveStats = function (data) {
         // console.log("got stats: %s", data);
         //console.dir(data);
@@ -19,8 +17,7 @@ App = function () {
 
     self.refresh = function () {
         $.get('/stats',self.receiveStats);
-        $.get('/stock/' + $('#stock').val(),self.drawGraph);
-        setTimeout(self.refresh,self.refreshInterval);
+        setTimeout(self.refresh,1000);
     };
 
     self.submitEvent = function () {
@@ -48,11 +45,21 @@ App = function () {
 
     self.runEmitter = false;
 
+    self.refreshInterval = function () {
+        try {
+            var interval = parseInt($('#emitter-interval').val());
+            return interval;
+        } catch (x) {
+            console.log("Unable to parse #emitter-interval: '%s'", $('#emitter-interval'));
+            return 1000;
+        }
+    };
+
     self.emitterFn = function () {
         self.randomStockEvent();
 
         if ( self.runEmitter) {
-            setTimeout(self.emitterFn,parseInt($('#emitter-interval').val()));
+            setTimeout(self.emitterFn,self.refreshInterval());
         }
     };
     self.startEmitter = function () {
@@ -77,42 +84,39 @@ App = function () {
         $('#start-emitter').click(self.startEmitter);
         $('#stop-emitter').click(self.stopEmitter);
         self.refresh();
+        // self.doDrawGraph();
+    };
+
+    self.fetchGraphData = function () {
+        $.get('/stock/' + $('#stock').val(), self.drawGraph);
+    };
+
+    self.doDrawGraph = function () {
+        $.get('/stock/' + $('#stock').val(), function (d) {
+                  self.drawGraph(d);
+                  setTimeout(self.doDrawGraph,1000);
+              });
     };
 
     self.drawGraph = function (stockData) {
+        console.log('drawGraph, clearing #graph stockData.result.length=%s', stockData[0].result.length);
+        console.dir(stockData);
         $('#graph').html('');
+
+        if ( stockData[0].result.length < 1) {
+            return;
+        }
+
+        console.log('drawGraph, creating Raphael in #graph');
         self.raphael = Raphael("graph",400,400);
-        var x = [], y = [];
+        var x_vals = [], y_vals = [];
         $.each(stockData[0].result,function(idx,data) {
-                   x[idx] = idx;
-                   y[idx] = data.price;
+                   x_vals[idx] = idx;
+                   y_vals[idx] = data.price;
                });
-
-        // var x = [], y = [], y2 = [], y3 = [];
-        // for (var i = 0; i < 1e6; i++) {
-        //     x[i] = i * 10;
-        //     y[i] = (y[i - 1] || 0) + (Math.random() * 7) - 3;
-        //     y2[i] = (y2[i - 1] || 150) + (Math.random() * 7) - 3.5;
-        //     y3[i] = (y3[i - 1] || 300) + (Math.random() * 7) - 4;
-        // }
-
-        // self.raphael.g.text(160, 10, "Simple Line Chart (1000 points)");
-        // self.raphael.g.text(480, 10, "shade = true (10,000 points)");
-        // self.raphael.g.text(160, 250, "shade = true & nostroke = true (1,000,000 points)");
-        // self.raphael.g.text(480, 250, "Symbols, axis and hover effect");
-
-        // self.raphael.g.linechart(10, 10, 300, 220, x, [y.slice(0, 1e3), y2.slice(0, 1e3), y3.slice(0, 1e3)])
-
-        self.raphael.g.linechart(10, 10, 300, 220, x, [y])
-            .hoverColumn(function () {
-                             this.set = self.raphael.set(
-                                 self.raphael.g.disc(this.x, this.y[0]),
-                                 self.raphael.g.disc(this.x, this.y[1]),
-                                 self.raphael.g.disc(this.x, this.y[2])
-                             );
-                         }, function () {
-                             this.set.remove();
-                         });
+        console.log('drawGraph, rendering linechart over x.len=%s y.len=%s', x_vals.length, y_vals.length);
+        self.raphael.g.linechart(10, 10, 300, 220, x_vals, [y_vals]);
+        console.log('drawGraph, rendered linechart');
     };
 
     return self;
