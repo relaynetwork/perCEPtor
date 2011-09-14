@@ -97,7 +97,7 @@
     (json [{:result
             (take 50
                   (concat (for [e (perceptor/immediate-query (format "select * from StockEventsLast50 where stock = '%s'" name))]
-                     (.getProperties e))
+                            (.getProperties e))
                           (repeatedly (fn [] {"stock" name "price" 0}))))}])))
 
 
@@ -121,7 +121,13 @@
      (perceptor/compile-statement (format "CREATE WINDOW StockEventsLastMinute.win:time(%s seconds) AS StockEvent" (:window-size-seconds @*config*)))
      (perceptor/compile-statement (format "CREATE WINDOW StockEventsLast50.win:length(50) AS StockEvent"))
      (perceptor/compile-statement "insert into StockEventsLastMinute select * from StockEvent")
-     (perceptor/compile-statement "insert into StockEventsLast50 select * from StockEvent")))
+     (perceptor/compile-statement "insert into StockEventsLast50 select * from StockEvent")
+
+     (perceptor/compile-statement
+      "CREATE SCHEMA StockAlertsSchema (stock string, error_count int, success_count int, created_at long, updated_at long, last_alerted long, is_new bool)")
+
+     (perceptor/compile-statement
+      "CREATE WINDOW StockAlertsWindow.std:unique(stock) AS StockAlertsSchema")))
 
 
   (reset! *esp* (perceptor/make-provider :stocks))
@@ -192,11 +198,28 @@
            (.set *jedis* key price)
            (.expire *jedis* key (:key-expire-seconds @*config*)))))))
 
+
+  (perceptor/register-listener
+   :ratio-test
+  "
+select (select count(*) from StockEventsLastMinute where stock='xyz') as xyzcount, //
+       (select count(*) from StockEventsLastMinute where stock='ibm') as ibmcount
+ from StockEventsLastMinute
+WHERE ((select count(*) from StockEventsLastMinute where stock='xyz') / (select count(*) from StockEventsLastMinute where stock='ibm')) > 2.0
+"
+   (fn []
+     (log/infof "ratio event: %s" (vec (map bean *new-events*)))))
+
+
+
+
+
   (binding [*provider* @*esp*]
     (perceptor/start-listener :trade-count-listener)
     (perceptor/start-listener :trade-avg-listener)
     (perceptor/start-listener :trade-max-listener)
-    (perceptor/start-listener :trade-min-listener))
+    (perceptor/start-listener :trade-min-listener)
+    (perceptor/start-listener :ratio-test))
 
   ;; pre-populate with 1 example
   (binding [*provider* @*esp*]
@@ -212,6 +235,7 @@
 
 
 (comment
+
   (binding [*provider* @*esp*]
     (perceptor/emit-event "StockEvent"
                           "stock" "xyz"
@@ -219,11 +243,11 @@
 
   (binding [*provider* @*esp*]
     (for [e (perceptor/immediate-query "select * from StockEventsLastMinute")]
-      (bean e)))
+      (.getProperties e)))
 
   (binding [*provider* @*esp*]
     (count (for [e (perceptor/immediate-query "select * from StockEventsLastMinute limit 10")]
-       (.getProperties e))))
+             (.getProperties e))))
 
   (tr/with-jedis :local
     (.del *jedis* (into-array String (vec (.keys *jedis* "*")))))
