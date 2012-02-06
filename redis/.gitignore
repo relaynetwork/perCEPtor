@@ -1,5 +1,5 @@
-redis-2.2.11.tar.gz
-redis-2.2.11/
+redis-2.*.tar.gz
+redis-2.*/
 redis-master.conf
 master-appendonly.aof
 master-dump.rdb
