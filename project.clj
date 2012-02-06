@@ -5,5 +5,5 @@
   :dependencies [[org.clojure/clojure                         "1.2.1"]
                  [org.clojure/clojure-contrib                 "1.2.0"]
                  [com.espertech/esper                         "4.3.0"]
-                 [org.clojars.kyleburton/clj-etl-utils        "1.0.38-SNAPSHOT"]
-                 [com.relaynetwork/clorine                    "1.0.6-SNAPSHOT"]])
+                 [org.clojars.kyleburton/clj-etl-utils        "1.0.38"]
+                 [com.relaynetwork/clorine                    "1.0.6"]])
