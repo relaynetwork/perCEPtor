@@ -2,7 +2,7 @@
 
 Clojure bindings for [Esper](http://esper.codehaus.org/)
 
-# Running The Ineteractive Example
+# Running The Interactive Example
 
 First, at a terminal, run:
 
