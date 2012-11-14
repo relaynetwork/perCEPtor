@@ -1,4 +1,4 @@
-(defproject com.relaynetwork/perceptor "1.0.0-SNAPSHOT"
+(defproject com.github.kyleburton/perceptor "1.0.0-SNAPSHOT"
   :description "Clojure bindings for Esper: http://esper.codehaus.org/"
   :dev-dependencies [[swank-clojure "1.4.0-SNAPSHOT"]]
   :local-repo-classpath true
