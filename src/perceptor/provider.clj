@@ -28,6 +28,7 @@
           {:name    name
            :init-fn init-fn})))
 
+
 (defn unregister-provider [name]
   (dosync (alter *provider-registry* dissoc name)))
 
@@ -35,11 +36,11 @@
   (get @*provider-registry* name))
 
 
-(def *provider* :no-provider)
+(def ^:dynamic *provider* :no-provider)
 
-(defn make-provider [name]
-  (let [cfg      (get-registered-provider name)
-        provider (EPServiceProviderManager/getDefaultProvider)]
+(defn make-provider [provider-name]
+  (let [cfg      (get-registered-provider provider-name)
+        provider (EPServiceProviderManager/getProvider (name provider-name))]
     (binding [*provider* provider]
       ((get cfg :init-fn) provider))
     provider))
@@ -152,7 +153,7 @@
 (defn emit-event
   ([^String type k v & attrs]
      (emit-event type (apply hash-map k v attrs)))
-  ([^String type ^Map attrs]
+  ([^String type ^java.util.Map attrs]
      (.sendEvent (.getEPRuntime *provider*) attrs type)))
 
 (defn immediate-query [epl]
