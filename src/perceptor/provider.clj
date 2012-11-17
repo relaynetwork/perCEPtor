@@ -45,6 +45,9 @@
       ((get cfg :init-fn) provider))
     provider))
 
+(defn destroy-named-provider [provider-name]
+  (.destroy (EPServiceProviderManager/getProvider (name provider-name))))
+
 (defn get-provider [name]
   (.borrowObject (:pool (get @pool/*registry* name))))
 
