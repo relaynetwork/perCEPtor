@@ -48,6 +48,9 @@
 (defn destroy-named-provider [provider-name]
   (.destroy (EPServiceProviderManager/getProvider (name provider-name))))
 
+(defn destroy-all-statements []
+  (.destroyAllStatements (.getEPAdministrator *provider*)))
+
 (defn get-provider [name]
   (.borrowObject (:pool (get @pool/*registry* name))))
 
@@ -99,8 +102,8 @@
 (defn stop-all-statements []
   (.stopAllStatements (.getEPAdministrator *provider*)))
 
-(def *new-events* :new-events-must-be-bound)
-(def *old-events* :old-events-must-be-bound)
+(def ^{:dynamic true} *new-events* :new-events-must-be-bound)
+(def ^{:dynamic true} *old-events* :old-events-must-be-bound)
 
 
 (defn make-listener* [f]
@@ -157,6 +160,7 @@
   ([^String type k v & attrs]
      (emit-event type (apply hash-map k v attrs)))
   ([^String type ^java.util.Map attrs]
+     (def pp *provider*)
      (.sendEvent (.getEPRuntime *provider*) attrs type)))
 
 (defn immediate-query [epl]
